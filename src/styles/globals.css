@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Righteous&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gradient-to-br from-amber-100 to-amber-200;
+  min-height: 100vh;
+}
+
+.meme-grid {
+  @apply grid grid-cols-3 gap-4;
+}
+
+.meme-container {
+  @apply relative aspect-square;
+  perspective: 1000px;
+}
+
+.meme-image {
+  @apply max-w-full max-h-full w-auto h-auto object-contain transition-all duration-300;
+}
+
+.download-button {
+  @apply absolute bottom-2 right-2 px-4 py-2 bg-amber-500 text-white rounded-lg 
+         transition-all duration-300 opacity-0 transform translate-y-2;
+  font-family: 'Righteous', cursive;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.title-text {
+  font-family: 'Permanent Marker', cursive;
+  @apply text-amber-900;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
