@@ -31,7 +31,7 @@ export default function AdminPage() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === 'admin123') {
+    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
       setIsAuthenticated(true);
       setMessage('');
     } else {
