@@ -3,15 +3,22 @@ import React, { useState, useEffect } from 'react';
 export function MemeGallery() {
   const [memes, setMemes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchMemes = async () => {
       try {
         const response = await fetch('/api/getMemes');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
-        setMemes(data);
+        // Ensure data is an array
+        setMemes(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching memes:', error);
+        setError(error.message);
+        setMemes([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
@@ -30,6 +37,14 @@ export function MemeGallery() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-100 to-amber-200 flex items-center justify-center">
+        <p className="text-xl text-red-600">Failed to load memes. Please try again later.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-100 to-amber-200">
       <header className="py-8 bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200">
@@ -44,14 +59,14 @@ export function MemeGallery() {
         {memes.length === 0 ? (
           <p className="text-center text-2xl title-text">No memes found in the vault...</p>
         ) : (
-          <div className="meme-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {memes.map((meme, index) => (
-              <div key={index} className="meme-container group">
+              <div key={index} className="relative group aspect-square">
                 <div className="w-full h-full flex items-center justify-center p-4">
                   <img 
                     src={meme.url || `/memes/${meme.filename}`}
                     alt="meme"
-                    className="meme-image rounded-lg shadow-lg group-hover:scale-105 group-hover:brightness-110"
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-lg transition-all duration-300 group-hover:scale-105"
                     onError={(e) => {
                       console.error(`Error loading image: ${meme.filename}`);
                       e.target.src = '/placeholder.png';
@@ -59,8 +74,8 @@ export function MemeGallery() {
                   />
                 </div>
                 <a
-                  href={`/memes/${meme.filename}`}
-                  className="download-button group-hover:opacity-100 group-hover:translate-y-0 hover:bg-amber-600 hover:scale-105"
+                  href={meme.url || `/memes/${meme.filename}`}
+                  className="absolute bottom-2 right-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-all duration-300 opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0"
                   download
                 >
                   Download
@@ -70,10 +85,6 @@ export function MemeGallery() {
           </div>
         )}
       </main>
-
-      <footer className="py-6 text-center">
-        <p className="text-amber-800 font-righteous">© {new Date().getFullYear()} Yeet MEME Vault</p>
-      </footer>
     </div>
   );
 }

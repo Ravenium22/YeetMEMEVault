@@ -1,32 +1,28 @@
-import fs from 'fs';
-import path from 'path';
+import { join } from 'path';
+import { readdir } from 'fs/promises';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   try {
-    // Get the absolute path to the memes directory
-    const memesDirectory = path.join(process.cwd(), 'public', 'memes');
+    // Default empty array if directory doesn't exist or is empty
+    let memes = [];
     
-    // Read the directory
-    const filenames = fs.readdirSync(memesDirectory);
-    
-    // Filter for image files and create full paths
-    const memes = filenames
-      .filter(filename => {
-        // Ensure we only get image files
-        return /\.(jpg|jpeg|png|gif|webp)$/i.test(filename);
-      })
-      .map(filename => ({
-        filename,
-        // Add a timestamp to prevent caching
-        url: `/memes/${filename}?t=${Date.now()}`
-      }));
+    try {
+      const memesDirectory = join(process.cwd(), 'public', 'memes');
+      const files = await readdir(memesDirectory);
+      memes = files
+        .filter(file => /\.(jpg|jpeg|png|gif|webp)$/i.test(file))
+        .map(filename => ({
+          filename,
+          url: `/memes/${filename}`
+        }));
+    } catch (error) {
+      console.error('Directory read error:', error);
+      // Don't throw, just return empty array
+    }
 
-    // Log the found memes for debugging
-    console.log('Found memes:', memes);
-    
     res.status(200).json(memes);
   } catch (error) {
-    console.error('Error reading memes directory:', error);
-    res.status(500).json({ error: 'Failed to read meme directory' });
+    console.error('API error:', error);
+    res.status(500).json({ error: 'Failed to load memes', details: error.message });
   }
 }
