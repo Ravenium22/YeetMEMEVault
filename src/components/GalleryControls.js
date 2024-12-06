@@ -19,6 +19,16 @@ export function GalleryControls({ viewMode, setViewMode, sortOrder, setSortOrder
           Grid
         </button>
         <button
+          onClick={() => setViewMode('compact')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            viewMode === 'compact' 
+              ? 'bg-amber-500 text-white' 
+              : 'bg-white/80 dark:bg-gray-800 text-amber-900 dark:text-white hover:bg-amber-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          Compact
+        </button>
+        <button
           onClick={() => setViewMode('list')}
           className={`px-4 py-2 rounded-lg transition-colors ${
             viewMode === 'list' 
@@ -69,6 +79,16 @@ export function MobileGalleryControls({ viewMode, setViewMode, sortOrder, setSor
             }`}
           >
             Grid
+          </button>
+          <button
+            onClick={() => setViewMode('compact')}
+            className={`px-3 py-1 rounded-lg text-sm ${
+              viewMode === 'compact' 
+                ? 'bg-amber-500 text-white' 
+                : 'bg-white/80 dark:bg-gray-800 text-amber-900 dark:text-white'
+            }`}
+          >
+            Compact
           </button>
           <button
             onClick={() => setViewMode('list')}

@@ -1,4 +1,4 @@
-'use client';
+'use client'; 
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -16,9 +16,10 @@ export default function Home() {
   const [sortOrder, setSortOrder] = useState('newest');
   const { theme } = useTheme();
 
+  // Initial fetch of memes and download counts
   useEffect(() => {
     fetchMemes();
-    fetchDownloadCounts();
+    fetchInitialDownloadCounts();
   }, []);
 
   // Sort memes whenever sort order changes
@@ -38,7 +39,7 @@ export default function Home() {
     }
   }, [sortOrder, downloadCounts]);
 
-  const fetchDownloadCounts = async () => {
+  const fetchInitialDownloadCounts = async () => {
     try {
       const response = await fetch('/api/getDownloadCounts');
       const data = await response.json();
@@ -64,34 +65,49 @@ export default function Home() {
 
   const handleDownload = async (meme) => {
     try {
-      // Track download
+      // Fetch the image from the meme URL as a Blob
+      const response = await fetch(meme.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      const blob = await response.blob();
+  
+      // Create a blob URL
+      const blobUrl = URL.createObjectURL(blob);
+  
+      // Create a temporary <a> element to force a download
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = meme.filename || 'meme.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  
+      // Clean up the blob URL
+      URL.revokeObjectURL(blobUrl);
+  
+      // Update the download counts locally
+      setDownloadCounts(prev => ({
+        ...prev,
+        [meme.public_id]: (prev[meme.public_id] || 0) + 1
+      }));
+  
+      // Optionally track the download on the server
       const trackResponse = await fetch('/api/trackDownload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ memeId: meme.public_id })
       });
-      
       if (trackResponse.ok) {
         const { count } = await trackResponse.json();
         setDownloadCounts(prev => ({ ...prev, [meme.public_id]: count }));
       }
-
-      // Start direct download
-      const response = await fetch(meme.url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.style.display = 'none';
-      link.href = url;
-      link.download = meme.filename || 'meme.jpg';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+  
     } catch (error) {
       console.error('Download failed:', error);
     }
   };
+  
 
   const showRandomMeme = () => {
     if (memes.length > 0) {
@@ -135,7 +151,9 @@ export default function Home() {
         {loading ? (
           <div className={viewMode === 'grid' ? 
             "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : 
-            "space-y-4"
+            viewMode === 'compact' 
+            ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2"
+            : "space-y-4"
           }>
             {[...Array(6)].map((_, i) => (
               <div key={i} className="animate-pulse">
@@ -148,24 +166,31 @@ export default function Home() {
         ) : memes.length === 0 ? (
           <p className="text-center text-2xl title-text dark:text-white">No memes found in the vault...</p>
         ) : (
+          // Updated grid layout code starts here
           <div className={
             viewMode === 'grid' 
               ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              : viewMode === 'compact'
+              ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2"
               : "space-y-4"
           }>
             {memes.map((meme, index) => (
               <div 
                 key={index} 
                 className={`relative group ${
-                  viewMode === 'grid' 
-                    ? 'aspect-square' 
-                    : 'flex items-center bg-white/50 dark:bg-gray-800/50 rounded-lg p-4'
+                  viewMode === 'list' 
+                    ? 'flex items-center bg-white/50 dark:bg-gray-800/50 rounded-lg p-4'
+                    : viewMode === 'compact'
+                    ? 'aspect-square p-1'
+                    : 'aspect-square p-4'
                 }`}
               >
                 <div className={`
-                  ${viewMode === 'grid' 
-                    ? 'w-full h-full flex items-center justify-center p-4'
-                    : 'flex-shrink-0 w-48 h-48 mr-4'
+                  ${viewMode === 'list' 
+                    ? 'flex-shrink-0 w-48 h-48 mr-4'
+                    : viewMode === 'compact'
+                    ? 'w-full h-full flex items-center justify-center'
+                    : 'w-full h-full flex items-center justify-center'
                   }
                 `}>
                   <img 
@@ -174,7 +199,7 @@ export default function Home() {
                     className={`
                       max-w-full max-h-full object-contain rounded-lg shadow-lg 
                       transition-all duration-300 cursor-pointer
-                      ${viewMode === 'grid' ? 'group-hover:scale-105' : ''}
+                      ${viewMode !== 'list' ? 'group-hover:scale-105' : ''}
                       dark:shadow-gray-900
                     `}
                     onClick={() => setSelectedImage(meme)}
@@ -194,17 +219,22 @@ export default function Home() {
                     </button>
                   </div>
                 )}
-                {viewMode === 'grid' && (
+                {viewMode !== 'list' && (
                   <button
                     onClick={() => handleDownload(meme)}
-                    className="absolute bottom-2 right-2 px-4 py-2 bg-amber-500 text-white rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-600 transition-all dark:bg-amber-600 dark:hover:bg-amber-700"
+                    className={`absolute bottom-1 right-1 ${
+                      viewMode === 'compact' 
+                        ? 'px-2 py-1 text-sm'
+                        : 'px-4 py-2'
+                    } bg-amber-500 text-white rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-600 transition-all dark:bg-amber-600 dark:hover:bg-amber-700`}
                   >
-                    Download ({downloadCounts[meme.public_id] || 0})
+                    {viewMode === 'compact' ? '⬇' : `Download (${downloadCounts[meme.public_id] || 0})`}
                   </button>
                 )}
               </div>
             ))}
           </div>
+          // Updated grid layout code ends here
         )}
       </main>
 
