@@ -1,72 +1,102 @@
 import React from 'react';
-import { useAppContext } from '../context/AppContext';
+import { useTheme } from 'next-themes';
 
-export function GalleryControls() {
-  const { 
-    darkMode, 
-    toggleDarkMode, 
-    viewMode, 
-    setViewMode, 
-    sortOrder, 
-    setSortOrder 
-  } = useAppContext();
+export function GalleryControls({ viewMode, setViewMode, sortOrder, setSortOrder }) {
+  const { theme, setTheme } = useTheme();
 
   return (
-    <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
-      <div className="flex gap-4">
-        {/* View Mode Toggle */}
-        <div className="flex rounded-lg overflow-hidden">
+    <div className="flex flex-wrap gap-4 items-center">
+      {/* View Mode Controls */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setViewMode('grid')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            viewMode === 'grid' 
+              ? 'bg-amber-500 text-white' 
+              : 'bg-white/80 dark:bg-gray-800 text-amber-900 dark:text-white hover:bg-amber-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          Grid
+        </button>
+        <button
+          onClick={() => setViewMode('list')}
+          className={`px-4 py-2 rounded-lg transition-colors ${
+            viewMode === 'list' 
+              ? 'bg-amber-500 text-white' 
+              : 'bg-white/80 dark:bg-gray-800 text-amber-900 dark:text-white hover:bg-amber-100 dark:hover:bg-gray-700'
+          }`}
+        >
+          List
+        </button>
+      </div>
+
+      {/* Sort Controls */}
+      <select
+        value={sortOrder}
+        onChange={(e) => setSortOrder(e.target.value)}
+        className="px-4 py-2 rounded-lg bg-white/80 dark:bg-gray-800 text-amber-900 dark:text-white border-none focus:ring-2 focus:ring-amber-500"
+      >
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="popular">Most Downloaded</option>
+      </select>
+
+      {/* Theme Toggle */}
+      <button
+        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+        className="p-2 rounded-lg bg-white/80 dark:bg-gray-800 text-amber-900 dark:text-white hover:bg-amber-100 dark:hover:bg-gray-700"
+        title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+      >
+        {theme === 'dark' ? '🌞' : '🌙'}
+      </button>
+    </div>
+  );
+}
+
+export function MobileGalleryControls({ viewMode, setViewMode, sortOrder, setSortOrder }) {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="flex flex-col gap-4 w-full md:hidden">
+      <div className="flex justify-between">
+        <div className="flex gap-2">
           <button
             onClick={() => setViewMode('grid')}
-            className={`px-4 py-2 ${
+            className={`px-3 py-1 rounded-lg text-sm ${
               viewMode === 'grid' 
                 ? 'bg-amber-500 text-white' 
-                : 'bg-white dark:bg-gray-800 dark:text-white'
+                : 'bg-white/80 dark:bg-gray-800 text-amber-900 dark:text-white'
             }`}
           >
             Grid
           </button>
           <button
             onClick={() => setViewMode('list')}
-            className={`px-4 py-2 ${
+            className={`px-3 py-1 rounded-lg text-sm ${
               viewMode === 'list' 
                 ? 'bg-amber-500 text-white' 
-                : 'bg-white dark:bg-gray-800 dark:text-white'
+                : 'bg-white/80 dark:bg-gray-800 text-amber-900 dark:text-white'
             }`}
           >
             List
           </button>
         </div>
-
-        {/* Sort Order */}
-        <select
-          value={sortOrder}
-          onChange={(e) => setSortOrder(e.target.value)}
-          className="px-4 py-2 rounded-lg bg-white dark:bg-gray-800 dark:text-white"
-        >
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="popular">Most Downloaded</option>
-        </select>
-      </div>
-
-      <div className="flex gap-4">
-        {/* Dark Mode Toggle */}
         <button
-          onClick={toggleDarkMode}
-          className="p-2 rounded-full bg-white dark:bg-gray-800"
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="p-1 rounded-lg bg-white/80 dark:bg-gray-800"
         >
-          {darkMode ? '🌞' : '🌙'}
-        </button>
-
-        {/* Random Meme Button */}
-        <button
-          onClick={() => {/* Add random meme logic */}}
-          className="px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600"
-        >
-          Random Meme
+          {theme === 'dark' ? '🌞' : '🌙'}
         </button>
       </div>
+      <select
+        value={sortOrder}
+        onChange={(e) => setSortOrder(e.target.value)}
+        className="w-full px-3 py-1 rounded-lg bg-white/80 dark:bg-gray-800 text-amber-900 dark:text-white text-sm"
+      >
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="popular">Most Downloaded</option>
+      </select>
     </div>
   );
 }

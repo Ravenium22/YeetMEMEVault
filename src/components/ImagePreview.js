@@ -1,5 +1,3 @@
-import React from 'react';
-
 export function ImagePreview({ image, onClose, onDownload, downloadCount }) {
   return (
     <div 
@@ -7,16 +5,16 @@ export function ImagePreview({ image, onClose, onDownload, downloadCount }) {
       onClick={onClose}
     >
       <div 
-        className="relative max-w-4xl w-full bg-white rounded-lg overflow-hidden"
+        className="relative max-w-4xl w-full bg-white dark:bg-gray-800 rounded-lg overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <div className="p-4 flex justify-between items-center border-b">
-          <h3 className="text-lg font-semibold text-amber-900">
+        <div className="p-4 flex justify-between items-center border-b dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-amber-900 dark:text-white">
             {image.filename}
           </h3>
           <button 
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
           >
             ✕
           </button>
@@ -28,8 +26,8 @@ export function ImagePreview({ image, onClose, onDownload, downloadCount }) {
             className="max-h-[80vh] object-contain mx-auto rounded-lg"
           />
         </div>
-        <div className="p-4 border-t flex justify-between items-center">
-          <div className="text-sm text-gray-500">
+        <div className="p-4 border-t dark:border-gray-700 flex justify-between items-center">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
             Downloads: {downloadCount}
           </div>
           <button 
