@@ -1,11 +1,28 @@
 import formidable from 'formidable';
+import cloudinary from '../../utils/cloudinary';
 import fs from 'fs';
-import path from 'path';
 
 export const config = {
   api: {
     bodyParser: false,
   },
+};
+
+const uploadToCloudinary = async (file) => {
+  try {
+    const result = await cloudinary.uploader.upload(file.filepath, {
+      folder: 'meme-vault',
+      resource_type: 'auto',
+    });
+    return {
+      url: result.secure_url,
+      public_id: result.public_id,
+      success: true
+    };
+  } catch (error) {
+    console.error('Cloudinary upload error:', error);
+    return { success: false };
+  }
 };
 
 export default async function handler(req, res) {
@@ -15,26 +32,31 @@ export default async function handler(req, res) {
 
   try {
     const form = formidable({
-      uploadDir: path.join(process.cwd(), 'public', 'memes'),
       keepExtensions: true,
-      maxFileSize: 10 * 1024 * 1024, // 10MB limit
+      maxFileSize: 10 * 1024 * 1024,
     });
 
-    form.parse(req, (err, fields, files) => {
+    form.parse(req, async (err, fields, files) => {
       if (err) {
         return res.status(500).json({ error: 'Upload failed' });
       }
 
-      const uploadedFiles = Array.isArray(files.memes) ? files.memes : [files.memes];
-      
-      uploadedFiles.forEach(file => {
-        // Optionally rename files or perform additional processing
-        const oldPath = file.filepath;
-        const newPath = path.join(path.dirname(oldPath), file.originalFilename);
-        fs.renameSync(oldPath, newPath);
-      });
+      const memes = files.memes;
+      const results = [];
 
-      res.status(200).json({ message: 'Upload successful' });
+      if (Array.isArray(memes)) {
+        for (const meme of memes) {
+          const result = await uploadToCloudinary(meme);
+          results.push(result);
+          fs.unlinkSync(meme.filepath);
+        }
+      } else if (memes) {
+        const result = await uploadToCloudinary(memes);
+        results.push(result);
+        fs.unlinkSync(memes.filepath);
+      }
+
+      res.status(200).json({ results });
     });
   } catch (error) {
     console.error('Upload error:', error);
