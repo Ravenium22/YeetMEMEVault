@@ -31,7 +31,7 @@ export default function AdminPage() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
+    if (password === 'admin123') {
       setIsAuthenticated(true);
       setMessage('');
     } else {
@@ -59,7 +59,7 @@ export default function AdminPage() {
       if (response.ok) {
         setShowPopup('Great job intern! You yeeted a meme! 🎉');
         e.target.value = '';
-        fetchMemes();
+        await fetchMemes(); // Refresh memes list immediately
         setTimeout(() => {
           setShowPopup('');
         }, 3000);
@@ -73,54 +73,42 @@ export default function AdminPage() {
     }
   };
 
-  const handleDelete = async (filenames) => {
+  const handleDelete = async (publicIds) => {
     try {
-      const filenamesToDelete = Array.isArray(filenames) ? filenames : [filenames];
-      
-      for (const filename of filenamesToDelete) {
-        const response = await fetch('/api/deleteMeme', {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ filename }),
-        });
+      const response = await fetch('/api/deleteMeme', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ publicIds: Array.isArray(publicIds) ? publicIds : [publicIds] }),
+      });
 
-        if (!response.ok) {
-          throw new Error('Delete failed');
-        }
+      if (response.ok) {
+        setShowPopup('Meme yeeted into the void! 🗑️');
+        await fetchMemes(); // Refresh memes list immediately
+        setSelectedMemes([]);
+        setShowDeleteConfirm(false);
+        setTimeout(() => {
+          setShowPopup('');
+        }, 3000);
+      } else {
+        throw new Error('Delete failed');
       }
-
-      setShowPopup(`${filenamesToDelete.length} meme(s) yeeted into the void! 🗑️`);
-      fetchMemes();
-      setSelectedMemes([]);
-      setShowDeleteConfirm(false);
-      setTimeout(() => {
-        setShowPopup('');
-      }, 3000);
     } catch (error) {
       setMessage(`Error deleting meme: ${error.message}`);
     }
   };
 
-  const toggleMemeSelection = (filename) => {
+  const toggleMemeSelection = (publicId) => {
     setSelectedMemes(prev => {
-      if (prev.includes(filename)) {
-        return prev.filter(name => name !== filename);
+      if (prev.includes(publicId)) {
+        return prev.filter(id => id !== publicId);
       } else {
-        return [...prev, filename];
+        return [...prev, publicId];
       }
     });
   };
 
-  const toggleBulkDeleteMode = () => {
-    setIsBulkDeleteMode(!isBulkDeleteMode);
-    if (isBulkDeleteMode) {
-      setSelectedMemes([]);
-    }
-  };
-
-  // Footer component
   const Footer = () => (
     <footer className="py-6 text-center">
       <p className="text-amber-800 mb-2">Made by yeetarded community member</p>
@@ -139,7 +127,6 @@ export default function AdminPage() {
     </footer>
   );
 
-  // Delete confirmation modal
   const DeleteConfirmation = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
@@ -236,7 +223,10 @@ export default function AdminPage() {
             <div className="flex gap-4">
               {memes.length > 0 && (
                 <button
-                  onClick={toggleBulkDeleteMode}
+                  onClick={() => {
+                    setIsBulkDeleteMode(!isBulkDeleteMode);
+                    setSelectedMemes([]);
+                  }}
                   className={`px-4 py-2 rounded-lg transition-colors ${
                     isBulkDeleteMode 
                       ? 'bg-amber-600 text-white' 
@@ -261,21 +251,21 @@ export default function AdminPage() {
               <div 
                 key={index} 
                 className={`relative group cursor-pointer ${
-                  selectedMemes.includes(meme.filename) ? 'ring-4 ring-amber-500' : ''
+                  selectedMemes.includes(meme.public_id) ? 'ring-4 ring-amber-500' : ''
                 }`}
-                onClick={() => isBulkDeleteMode && toggleMemeSelection(meme.filename)}
+                onClick={() => isBulkDeleteMode && toggleMemeSelection(meme.public_id)}
               >
                 <div className="relative">
                   <img
-                    src={meme.url || `/memes/${meme.filename}`}
+                    src={meme.url}
                     alt={meme.filename}
                     className={`w-full h-48 object-cover rounded-lg shadow-md transition-all duration-200 ${
-                      selectedMemes.includes(meme.filename) ? 'brightness-75' : 'group-hover:brightness-90'
+                      selectedMemes.includes(meme.public_id) ? 'brightness-75' : 'group-hover:brightness-90'
                     }`}
                   />
                   {isBulkDeleteMode && (
                     <div className="absolute top-2 left-2 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center bg-amber-500">
-                      {selectedMemes.includes(meme.filename) && (
+                      {selectedMemes.includes(meme.public_id) && (
                         <span className="text-white text-lg">✓</span>
                       )}
                     </div>
@@ -284,7 +274,7 @@ export default function AdminPage() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleDelete([meme.filename]);
+                        handleDelete([meme.public_id]);
                       }}
                       className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
                       title="Delete meme"

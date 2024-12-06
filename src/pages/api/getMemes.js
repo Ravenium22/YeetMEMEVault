@@ -1,28 +1,23 @@
-import { join } from 'path';
-import { readdir } from 'fs/promises';
+import cloudinary from '../../utils/cloudinary';
 
 export default async function handler(req, res) {
   try {
-    // Default empty array if directory doesn't exist or is empty
-    let memes = [];
-    
-    try {
-      const memesDirectory = join(process.cwd(), 'public', 'memes');
-      const files = await readdir(memesDirectory);
-      memes = files
-        .filter(file => /\.(jpg|jpeg|png|gif|webp)$/i.test(file))
-        .map(filename => ({
-          filename,
-          url: `/memes/${filename}`
-        }));
-    } catch (error) {
-      console.error('Directory read error:', error);
-      // Don't throw, just return empty array
-    }
+    const result = await cloudinary.search
+      .expression('folder:meme-vault')
+      .sort_by('created_at', 'desc')
+      .max_results(100)
+      .execute();
+
+    const memes = result.resources.map(resource => ({
+      filename: resource.filename,
+      url: resource.secure_url,
+      uploadDate: resource.created_at,
+      public_id: resource.public_id
+    }));
 
     res.status(200).json(memes);
   } catch (error) {
-    console.error('API error:', error);
-    res.status(500).json({ error: 'Failed to load memes', details: error.message });
+    console.error('Error fetching memes:', error);
+    res.status(500).json({ error: 'Failed to fetch memes' });
   }
 }

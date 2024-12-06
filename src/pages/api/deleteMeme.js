@@ -1,5 +1,4 @@
-import fs from 'fs';
-import path from 'path';
+import cloudinary from '../../utils/cloudinary';
 
 export default async function handler(req, res) {
   if (req.method !== 'DELETE') {
@@ -7,20 +6,21 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { filename } = req.body;
-    const filePath = path.join(process.cwd(), 'public', 'memes', filename);
+    const { publicIds } = req.body;
 
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ error: 'File not found' });
+    if (!publicIds || !publicIds.length) {
+      return res.status(400).json({ error: 'No public IDs provided' });
     }
 
-    // Delete the file
-    fs.unlinkSync(filePath);
+    const results = await Promise.all(
+      publicIds.map(publicId => 
+        cloudinary.uploader.destroy(publicId)
+      )
+    );
 
-    res.status(200).json({ message: 'Meme deleted successfully' });
+    res.status(200).json({ message: 'Memes deleted successfully', results });
   } catch (error) {
     console.error('Delete error:', error);
-    res.status(500).json({ error: 'Failed to delete meme' });
+    res.status(500).json({ error: 'Failed to delete memes' });
   }
 }
