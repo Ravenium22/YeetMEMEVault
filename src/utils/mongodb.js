@@ -9,7 +9,6 @@ const options = {
   ssl: true,
   tls: true,
   tlsAllowInvalidCertificates: true,
-  useUnifiedTopology: true,
   minPoolSize: 5,
   maxPoolSize: 10
 };
