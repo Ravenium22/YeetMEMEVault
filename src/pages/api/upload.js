@@ -1,11 +1,36 @@
 import formidable from 'formidable';
 import cloudinary from '../../utils/cloudinary';
+import fs from 'fs';
 
 export const config = {
   api: {
     bodyParser: false,
-    maxDuration: 30, // Increase API route duration limit
+    maxDuration: 60, // Increase timeout to 60 seconds
   },
+};
+
+const saveToCloudinary = async (file) => {
+  try {
+    const result = await cloudinary.uploader.upload(file.filepath, {
+      folder: 'meme-vault',
+      resource_type: 'auto',
+    });
+
+    // Clean up the temp file
+    fs.unlink(file.filepath, (err) => {
+      if (err) console.error('Error deleting temp file:', err);
+    });
+
+    return {
+      url: result.secure_url,
+      public_id: result.public_id,
+      filename: file.originalFilename,
+      success: true
+    };
+  } catch (error) {
+    console.error(`Error uploading file: ${file.originalFilename}`, error);
+    return { success: false, error: error.message };
+  }
 };
 
 export default async function handler(req, res) {
@@ -14,12 +39,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Configure formidable with higher limits
     const form = formidable({
-      multiples: true,
-      maxFileSize: 50 * 1024 * 1024, // 50MB
-      maxFields: 10,
-      maxFiles: 50,
+      maxFiles: 100,
+      maxFileSize: 50 * 1024 * 1024, // 50MB per file
       allowEmptyFiles: false,
       filter: function ({ name, originalFilename, mimetype }) {
         // Accept only images
@@ -44,35 +66,26 @@ export default async function handler(req, res) {
             // Handle both single and multiple files
             const filesToProcess = Array.isArray(uploadedFiles) ? uploadedFiles : [uploadedFiles];
 
-            // Upload files in parallel with a limit
-            const uploadPromises = filesToProcess.map(async (file) => {
-              try {
-                if (!file || !file.filepath) return null;
+            // Process files in batches of 10
+            for (let i = 0; i < filesToProcess.length; i += 10) {
+              const batch = filesToProcess.slice(i, i + 10);
+              const uploadPromises = batch.map(file => saveToCloudinary(file));
 
-                const result = await cloudinary.uploader.upload(file.filepath, {
-                  folder: 'meme-vault',
-                  resource_type: 'auto',
-                });
-
-                // Check for duplicates
-                if (!processedUrls.has(result.secure_url)) {
-                  processedUrls.add(result.secure_url);
-                  return {
-                    url: result.secure_url,
-                    public_id: result.public_id,
-                    filename: file.originalFilename,
-                    uploadDate: new Date().toISOString()
-                  };
+              const batchResults = await Promise.all(uploadPromises);
+              
+              // Filter successful uploads and check for duplicates
+              batchResults.forEach(result => {
+                if (result.success && !processedUrls.has(result.url)) {
+                  processedUrls.add(result.url);
+                  results.push(result);
                 }
-                return null;
-              } catch (uploadError) {
-                console.error('File upload error:', uploadError);
-                return null;
-              }
-            });
+              });
 
-            const uploadResults = await Promise.all(uploadPromises);
-            results.push(...uploadResults.filter(Boolean));
+              // Add small delay between batches
+              if (i + 10 < filesToProcess.length) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
 
             resolve(results);
           } catch (error) {
@@ -84,9 +97,19 @@ export default async function handler(req, res) {
     };
 
     const results = await processUpload();
-    res.status(200).json({ results });
+
+    // Send response with upload results
+    res.status(200).json({ 
+      message: 'Upload successful',
+      results: results.filter(r => r.success),
+      failed: results.filter(r => !r.success).length
+    });
+
   } catch (error) {
     console.error('Upload handler error:', error);
-    res.status(500).json({ error: 'Upload failed', details: error.message });
+    res.status(500).json({ 
+      error: 'Upload failed', 
+      details: error.message 
+    });
   }
 }

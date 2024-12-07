@@ -73,29 +73,29 @@ export default function AdminPage() {
       setMessage('No files selected');
       return;
     }
-
+  
     try {
       setUploading(true);
       const formData = new FormData();
       selectedFiles.forEach(file => {
         formData.append('memes', file);
       });
-
+  
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
-
+  
       if (!response.ok) {
         throw new Error(`Upload failed: ${response.statusText}`);
       }
-
+  
       const data = await response.json();
       
       if (data.results?.length > 0) {
         setShowPopup(`Successfully uploaded ${data.results.length} meme(s)! 🎉`);
-        setSelectedFiles([]); // Clear selected files
-        await fetchMemes();
+        setSelectedFiles([]);
+        await fetchMemes(); // Refresh the meme list
         setTimeout(() => {
           setShowPopup('');
         }, 3000);

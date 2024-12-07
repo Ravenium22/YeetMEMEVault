@@ -7,21 +7,23 @@ export default async function handler(req, res) {
 
   try {
     const client = await clientPromise;
-    const db = client.db('meme-vault');
+    const db = client.db('memevault');
     
     const downloads = await db.collection('downloads')
       .find({})
       .toArray();
 
-    // Convert array to object for easier access
-    const countsObject = downloads.reduce((acc, item) => {
-      acc[item.memeId] = item.count;
-      return acc;
-    }, {});
+    const downloadCounts = {};
+    downloads.forEach(doc => {
+      downloadCounts[doc.memeId] = doc.count || 0;
+    });
 
-    return res.status(200).json(countsObject);
+    res.status(200).json(downloadCounts);
   } catch (error) {
     console.error('Error fetching download counts:', error);
-    return res.status(500).json({ error: 'Failed to fetch download counts' });
+    res.status(500).json({ 
+      error: 'Failed to fetch download counts',
+      details: error.message 
+    });
   }
 }

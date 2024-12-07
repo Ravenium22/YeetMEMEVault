@@ -1,4 +1,4 @@
-'use client'; 
+'use client';
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
@@ -16,13 +16,23 @@ export default function Home() {
   const [sortOrder, setSortOrder] = useState('newest');
   const { theme } = useTheme();
 
-  // Initial fetch of memes and download counts
   useEffect(() => {
     fetchMemes();
-    fetchInitialDownloadCounts();
+    fetchDownloadCounts();
   }, []);
 
-  // Sort memes whenever sort order changes
+  const fetchDownloadCounts = async () => {
+    try {
+      const response = await fetch('/api/getDownloadCounts');
+      if (response.ok) {
+        const data = await response.json();
+        setDownloadCounts(data);
+      }
+    } catch (error) {
+      console.error('Error fetching download counts:', error);
+    }
+  };
+
   useEffect(() => {
     if (memes.length > 0) {
       const sortedMemes = [...memes].sort((a, b) => {
@@ -38,16 +48,6 @@ export default function Home() {
       setMemes(sortedMemes);
     }
   }, [sortOrder, downloadCounts]);
-
-  const fetchInitialDownloadCounts = async () => {
-    try {
-      const response = await fetch('/api/getDownloadCounts');
-      const data = await response.json();
-      setDownloadCounts(data);
-    } catch (error) {
-      console.error('Error fetching download counts:', error);
-    }
-  };
 
   const fetchMemes = async () => {
     try {
@@ -65,49 +65,38 @@ export default function Home() {
 
   const handleDownload = async (meme) => {
     try {
-      // Fetch the image from the meme URL as a Blob
-      const response = await fetch(meme.url);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-      const blob = await response.blob();
-  
-      // Create a blob URL
-      const blobUrl = URL.createObjectURL(blob);
-  
-      // Create a temporary <a> element to force a download
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = meme.filename || 'meme.jpg';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-  
-      // Clean up the blob URL
-      URL.revokeObjectURL(blobUrl);
-  
-      // Update the download counts locally
-      setDownloadCounts(prev => ({
-        ...prev,
-        [meme.public_id]: (prev[meme.public_id] || 0) + 1
-      }));
-  
-      // Optionally track the download on the server
+      // Track download first
       const trackResponse = await fetch('/api/trackDownload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ memeId: meme.public_id })
       });
+      
       if (trackResponse.ok) {
         const { count } = await trackResponse.json();
         setDownloadCounts(prev => ({ ...prev, [meme.public_id]: count }));
       }
   
+      // Fetch the image and force download
+      const response = await fetch(meme.url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.style.display = 'none';
+      link.href = url;
+      link.download = meme.filename || 'meme.jpg'; // Use original filename or default
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Cleanup
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
     }
   };
-  
 
   const showRandomMeme = () => {
     if (memes.length > 0) {
@@ -119,6 +108,14 @@ export default function Home() {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-100 to-amber-200 dark:from-gray-800 dark:to-gray-900 transition-colors duration-200">
       <Header isAdmin={false} />
+
+      <div className="flex justify-between items-center max-w-6xl mx-auto px-4 py-4">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm px-4 py-2 rounded-lg">
+          <span className="text-amber-900 dark:text-amber-100 font-medium">
+            📚 Vault Collection: {memes.length} Memes
+          </span>
+        </div>
+      </div>
       
       <main className="flex-grow max-w-6xl mx-auto py-12 px-4 w-full">
         <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
@@ -151,9 +148,7 @@ export default function Home() {
         {loading ? (
           <div className={viewMode === 'grid' ? 
             "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : 
-            viewMode === 'compact' 
-            ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2"
-            : "space-y-4"
+            "space-y-4"
           }>
             {[...Array(6)].map((_, i) => (
               <div key={i} className="animate-pulse">
@@ -166,31 +161,24 @@ export default function Home() {
         ) : memes.length === 0 ? (
           <p className="text-center text-2xl title-text dark:text-white">No memes found in the vault...</p>
         ) : (
-          // Updated grid layout code starts here
           <div className={
             viewMode === 'grid' 
               ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              : viewMode === 'compact'
-              ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2"
               : "space-y-4"
           }>
             {memes.map((meme, index) => (
               <div 
                 key={index} 
                 className={`relative group ${
-                  viewMode === 'list' 
-                    ? 'flex items-center bg-white/50 dark:bg-gray-800/50 rounded-lg p-4'
-                    : viewMode === 'compact'
-                    ? 'aspect-square p-1'
-                    : 'aspect-square p-4'
+                  viewMode === 'grid' 
+                    ? 'aspect-square' 
+                    : 'flex items-center bg-white/50 dark:bg-gray-800/50 rounded-lg p-4'
                 }`}
               >
                 <div className={`
-                  ${viewMode === 'list' 
-                    ? 'flex-shrink-0 w-48 h-48 mr-4'
-                    : viewMode === 'compact'
-                    ? 'w-full h-full flex items-center justify-center'
-                    : 'w-full h-full flex items-center justify-center'
+                  ${viewMode === 'grid' 
+                    ? 'w-full h-full flex items-center justify-center p-4'
+                    : 'flex-shrink-0 w-48 h-48 mr-4'
                   }
                 `}>
                   <img 
@@ -199,7 +187,7 @@ export default function Home() {
                     className={`
                       max-w-full max-h-full object-contain rounded-lg shadow-lg 
                       transition-all duration-300 cursor-pointer
-                      ${viewMode !== 'list' ? 'group-hover:scale-105' : ''}
+                      ${viewMode === 'grid' ? 'group-hover:scale-105' : ''}
                       dark:shadow-gray-900
                     `}
                     onClick={() => setSelectedImage(meme)}
@@ -219,22 +207,17 @@ export default function Home() {
                     </button>
                   </div>
                 )}
-                {viewMode !== 'list' && (
+                {viewMode === 'grid' && (
                   <button
                     onClick={() => handleDownload(meme)}
-                    className={`absolute bottom-1 right-1 ${
-                      viewMode === 'compact' 
-                        ? 'px-2 py-1 text-sm'
-                        : 'px-4 py-2'
-                    } bg-amber-500 text-white rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-600 transition-all dark:bg-amber-600 dark:hover:bg-amber-700`}
+                    className="absolute bottom-2 right-2 px-4 py-2 bg-amber-500 text-white rounded-lg opacity-0 group-hover:opacity-100 hover:bg-amber-600 transition-all dark:bg-amber-600 dark:hover:bg-amber-700"
                   >
-                    {viewMode === 'compact' ? '⬇' : `Download (${downloadCounts[meme.public_id] || 0})`}
+                    Download ({downloadCounts[meme.public_id] || 0})
                   </button>
                 )}
               </div>
             ))}
           </div>
-          // Updated grid layout code ends here
         )}
       </main>
 
