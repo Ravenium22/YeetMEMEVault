@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTheme } from 'next-themes';
 
-export function GalleryControls({ viewMode, setViewMode, sortOrder, setSortOrder }) {
+export function GalleryControls({ viewMode, setViewMode, sortOrder, setSortOrder, hideDownloadSort }) {
   const { theme, setTheme } = useTheme();
 
   return (
@@ -48,7 +48,7 @@ export function GalleryControls({ viewMode, setViewMode, sortOrder, setSortOrder
       >
         <option value="newest">Newest First</option>
         <option value="oldest">Oldest First</option>
-        <option value="popular">Most Downloaded</option>
+        {!hideDownloadSort && <option value="popular">Most Downloaded</option>}
       </select>
 
       {/* Theme Toggle */}
@@ -63,7 +63,7 @@ export function GalleryControls({ viewMode, setViewMode, sortOrder, setSortOrder
   );
 }
 
-export function MobileGalleryControls({ viewMode, setViewMode, sortOrder, setSortOrder }) {
+export function MobileGalleryControls({ viewMode, setViewMode, sortOrder, setSortOrder, hideDownloadSort }) {
   const { theme, setTheme } = useTheme();
 
   return (
@@ -115,7 +115,7 @@ export function MobileGalleryControls({ viewMode, setViewMode, sortOrder, setSor
       >
         <option value="newest">Newest First</option>
         <option value="oldest">Oldest First</option>
-        <option value="popular">Most Downloaded</option>
+        {!hideDownloadSort && <option value="popular">Most Downloaded</option>}
       </select>
     </div>
   );

@@ -1,36 +1,150 @@
-@import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Righteous&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Marcellus&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --honey-gold: #f59e0b;      /* Primary honey color */
+  --honey-light: #fef3c7;     /* Light background */
+  --honey-dark: #92400e;      /* Dark honey/text */
+  --honey-amber: #d97706;     /* Secondary accent */
+  --honeycomb-yellow: #fbbf24; /* Bright accent */
+  --creamy-white: #fffbeb;    /* Background alternative */
+  --royal-jelly: #78350f;     /* Deep accent */
+}
+
 body {
-  @apply bg-gradient-to-br from-amber-100 to-amber-200;
+  @apply bg-gradient-to-br from-honey-50 to-honey-100 dark:from-honey-900 dark:to-honey-800 font-body text-honey-900 dark:text-honey-100;
   min-height: 100vh;
 }
 
-.meme-grid {
-  @apply grid grid-cols-3 gap-4;
+h1, h2, h3, h4, h5, h6 {
+  @apply font-heading text-honey-800 dark:text-honey-200;
 }
 
-.meme-container {
-  @apply relative aspect-square;
-  perspective: 1000px;
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
 }
 
-.meme-image {
-  @apply max-w-full max-h-full w-auto h-auto object-contain transition-all duration-300;
+::-webkit-scrollbar-track {
+  @apply bg-honey-100 dark:bg-honey-800;
 }
 
-.download-button {
-  @apply absolute bottom-2 right-2 px-4 py-2 bg-amber-500 text-white rounded-lg 
-         transition-all duration-300 opacity-0 transform translate-y-2;
-  font-family: 'Righteous', cursive;
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+::-webkit-scrollbar-thumb {
+  @apply bg-honey-500 dark:bg-honey-600 rounded-full border-2 border-honey-100 dark:border-honey-800;
 }
 
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-honey-600 dark:bg-honey-500;
+}
+
+/* Firefox Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--honey-gold) var(--honey-light);
+}
+
+/* Honey Card Component */
+.honey-card {
+  @apply bg-white dark:bg-honey-800 rounded-xl shadow-honey overflow-hidden border border-honey-200 dark:border-honey-700 transition-all duration-300;
+}
+
+.honey-card:hover {
+  @apply transform -translate-y-1 shadow-honey-lg border-honey-300 dark:border-honey-600;
+}
+
+/* Honey Button Components */
+.btn-honey-primary {
+  @apply bg-honey-500 hover:bg-honey-600 text-white font-semibold py-3 px-6 rounded-full shadow-md transition-all duration-300 transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-honey-500 focus:ring-opacity-50;
+}
+
+.btn-honey-secondary {
+  @apply bg-transparent hover:bg-honey-100 dark:hover:bg-honey-800 text-honey-800 dark:text-honey-200 font-semibold py-3 px-6 rounded-full border-2 border-honey-500 hover:border-honey-600 dark:border-honey-600 dark:hover:border-honey-500 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-honey-500 focus:ring-opacity-50;
+}
+
+/* Form Components */
+.honey-input {
+  @apply bg-honey-50 dark:bg-honey-800 border-2 border-honey-200 dark:border-honey-700 rounded-lg px-4 py-3 focus:border-honey-500 dark:focus:border-honey-500 focus:outline-none focus:ring-2 focus:ring-honey-300 dark:focus:ring-honey-600 transition-all duration-300;
+}
+
+.honey-select {
+  @apply honey-input appearance-none bg-no-repeat pr-10;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23f59e0b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-position: right 0.5rem center;
+  background-size: 1.5em 1.5em;
+}
+
+/* Honey Title Text */
 .title-text {
-  font-family: 'Permanent Marker', cursive;
-  @apply text-amber-900;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+  @apply font-heading text-honey-800 dark:text-honey-200;
+  text-shadow: 2px 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+/* Honeycomb Pattern Background */
+.honeycomb-bg {
+  @apply bg-honey-50 dark:bg-honey-900 bg-honeycomb-pattern bg-repeat;
+}
+
+/* Animation Classes */
+.honey-hover-grow {
+  @apply transition-transform duration-300 hover:scale-105;
+}
+
+.honey-hover-glow {
+  @apply transition-all duration-300;
+}
+
+.honey-hover-glow:hover {
+  @apply shadow-lg;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
+}
+
+/* Navigation Links */
+.nav-link {
+  @apply text-honey-800 dark:text-honey-200 font-medium px-4 py-2 rounded-lg transition-colors duration-300 hover:bg-honey-100 dark:hover:bg-honey-800;
+}
+
+.nav-link.active {
+  @apply bg-honey-500 text-white hover:bg-honey-600;
+}
+
+/* Responsive Grid for Memes */
+.meme-grid {
+  @apply grid gap-6;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+@media (min-width: 768px) {
+  .meme-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+/* Meme Card */
+.meme-card {
+  @apply honey-card;
+}
+
+.meme-card .meme-image {
+  @apply w-full h-64 object-cover object-center transition-transform duration-500;
+}
+
+.meme-card:hover .meme-image {
+  @apply transform scale-105;
+}
+
+.meme-card .download-button {
+  @apply absolute bottom-4 right-4 bg-honey-500 text-white px-4 py-2 rounded-lg opacity-0 transform translate-y-2 transition-all duration-300;
+}
+
+.meme-card:hover .download-button {
+  @apply opacity-100 transform translate-y-0;
+}
+
+/* Hero Section Wave */
+.hero-wave {
+  @apply absolute bottom-0 left-0 right-0 h-16 bg-honey-wave bg-repeat-x bg-bottom;
 }

@@ -3,12 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { HeroSection } from '../components/HeroSection';
-import { MemeCard } from '../components/MemeCard';
+import { HallCard } from '../components/MemeCard';
 import { ImagePreview } from '../components/ImagePreview';
 import { useTheme } from 'next-themes';
 
-export default function Home() {
-  const [memes, setMemes] = useState([]);
+export default function HallOfYeetardation() {
+  const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
@@ -17,15 +17,14 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const { theme } = useTheme();
 
-  // Load memes
   useEffect(() => {
-    fetchMemes();
+    fetchPhotos();
   }, []);
 
-  // Sort memes whenever order changes
+  // Sort photos whenever order changes
   useEffect(() => {
-    if (memes.length > 0) {
-      const sortedMemes = [...memes].sort((a, b) => {
+    if (photos.length > 0) {
+      const sortedPhotos = [...photos].sort((a, b) => {
         if (sortOrder === 'newest') {
           return new Date(b.uploadDate) - new Date(a.uploadDate);
         } else if (sortOrder === 'oldest') {
@@ -33,67 +32,41 @@ export default function Home() {
         }
         return 0;
       });
-      setMemes(sortedMemes);
+      setPhotos(sortedPhotos);
     }
   }, [sortOrder]);
 
-  const fetchDownloadCounts = async () => {
-    // Removed as no longer needed
-  };
-
-  const fetchMemes = async () => {
+  const fetchPhotos = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/getMemes');
+      const response = await fetch('/api/getHallPhotos');
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
-      setMemes(Array.isArray(data) ? data : []);
+      setPhotos(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching memes:', error);
+      console.error('Error fetching hall photos:', error);
       setError(error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDownload = async (meme) => {
-    try {
-      // Fetch and download the image
-      const response = await fetch(meme.url);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.style.display = 'none';
-      link.href = url;
-      link.download = meme.filename || 'meme.jpg';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Download failed:', error);
+  const showRandomPhoto = () => {
+    if (photos.length > 0) {
+      const randomIndex = Math.floor(Math.random() * photos.length);
+      setSelectedImage(photos[randomIndex]);
     }
   };
 
-  const showRandomMeme = () => {
-    if (memes.length > 0) {
-      const randomIndex = Math.floor(Math.random() * memes.length);
-      setSelectedImage(memes[randomIndex]);
-    }
-  };
-
-  // Filter memes based on search term
-  const filteredMemes = memes.filter(meme => 
-    meme.filename?.toLowerCase().includes(searchTerm.toLowerCase())
+  // Filter photos based on search term
+  const filteredPhotos = photos.filter(photo => 
+    photo.filename?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <HeroSection />
+      <Header showHallTitle={true} />
+      <HeroSection showHallTitle={true} />
       
       <main className="flex-grow container mx-auto px-4 py-8">
         {/* Controls Section */}
@@ -104,7 +77,7 @@ export default function Home() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search memes..."
+              placeholder="Search tattoo photos..."
               className="honey-input w-full pl-10"
             />
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -155,7 +128,7 @@ export default function Home() {
             
             {/* Random Button */}
             <button
-              onClick={showRandomMeme}
+              onClick={showRandomPhoto}
               className="btn-honey-primary flex items-center"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -182,18 +155,18 @@ export default function Home() {
             </svg>
             <h2 className="text-2xl font-bold text-honey-800 dark:text-honey-200 mb-2">Oops! Something went wrong</h2>
             <p className="text-honey-700 dark:text-honey-300">{error}</p>
-            <button onClick={fetchMemes} className="mt-4 btn-honey-primary">
+            <button onClick={fetchPhotos} className="mt-4 btn-honey-primary">
               Try Again
             </button>
           </div>
-        ) : filteredMemes.length === 0 ? (
+        ) : filteredPhotos.length === 0 ? (
           <div className="py-12 text-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-honey-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h2 className="text-2xl font-bold text-honey-800 dark:text-honey-200 mb-2">No memes found</h2>
+            <h2 className="text-2xl font-bold text-honey-800 dark:text-honey-200 mb-2">No tattoo photos found</h2>
             <p className="text-honey-700 dark:text-honey-300">
-              {searchTerm ? `No memes match your search "${searchTerm}"` : "Your meme vault is empty. Upload some memes!"}
+              {searchTerm ? `No photos match your search "${searchTerm}"` : "The Hall of Yeetardation is empty. Be the first to submit your Yeet tattoo!"}
             </p>
             {searchTerm && (
               <button onClick={() => setSearchTerm('')} className="mt-4 btn-honey-primary">
@@ -203,12 +176,11 @@ export default function Home() {
           </div>
         ) : (
           <div className={viewMode === 'grid' ? 'meme-grid' : 'space-y-4'}>
-            {filteredMemes.map((meme, index) => (
-              <MemeCard
+            {filteredPhotos.map((photo, index) => (
+              <HallCard
                 key={index}
-                meme={meme}
+                photo={photo}
                 onView={setSelectedImage}
-                onDownload={handleDownload}
               />
             ))}
           </div>
@@ -221,8 +193,7 @@ export default function Home() {
         <ImagePreview 
           image={selectedImage} 
           onClose={() => setSelectedImage(null)}
-          onDownload={handleDownload}
-          hideDownloadButton={false}
+          hideDownloadButton={true}
         />
       )}
     </div>

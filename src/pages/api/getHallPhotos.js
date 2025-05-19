@@ -1,0 +1,30 @@
+import cloudinary from '../../utils/cloudinary';
+
+export default async function handler(req, res) {
+  try {
+    // Get all resources from the hall-of-yeetardation folder
+    const result = await cloudinary.search
+      .expression('folder:hall-of-yeetardation')
+      .max_results(1000)
+      .sort_by('created_at', 'desc')
+      .execute();
+
+    // Map the resources to a simpler format
+    const photos = result.resources.map(resource => ({
+      filename: resource.filename,
+      url: resource.secure_url,
+      uploadDate: resource.created_at,
+      public_id: resource.public_id
+    }));
+
+    // Return the photos array
+    return res.status(200).json(photos);
+
+  } catch (error) {
+    console.error('Error fetching hall photos:', error);
+    return res.status(500).json({ 
+      error: 'Failed to fetch hall photos',
+      message: error.message 
+    });
+  }
+}

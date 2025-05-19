@@ -13,15 +13,18 @@ export default function AdminPage() {
   const [message, setMessage] = useState('');
   const [showPopup, setShowPopup] = useState('');
   const [memes, setMemes] = useState([]);
-  const [selectedMemes, setSelectedMemes] = useState([]);
+  const [hallPhotos, setHallPhotos] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isBulkDeleteMode, setIsBulkDeleteMode] = useState(false);
+  const [activeTab, setActiveTab] = useState('memes'); // 'memes' or 'hall'
   const { theme } = useTheme();
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchMemes();
+      fetchHallPhotos();
     }
   }, [isAuthenticated]);
 
@@ -33,6 +36,17 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error fetching memes:', error);
       setMessage('Failed to load memes. Please try again.');
+    }
+  };
+
+  const fetchHallPhotos = async () => {
+    try {
+      const response = await fetch('/api/getHallPhotos');
+      const data = await response.json();
+      setHallPhotos(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error fetching hall photos:', error);
+      setMessage('Failed to load hall photos. Please try again.');
     }
   };
 
@@ -77,11 +91,19 @@ export default function AdminPage() {
     try {
       setUploading(true);
       const formData = new FormData();
-      selectedFiles.forEach(file => {
-        formData.append('memes', file);
-      });
+      
+      if (activeTab === 'memes') {
+        selectedFiles.forEach(file => {
+          formData.append('memes', file);
+        });
+      } else {
+        selectedFiles.forEach(file => {
+          formData.append('photos', file);
+        });
+      }
   
-      const response = await fetch('/api/upload', {
+      const endpoint = activeTab === 'memes' ? '/api/upload' : '/api/uploadHallPhoto';
+      const response = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       });
@@ -93,9 +115,16 @@ export default function AdminPage() {
       const data = await response.json();
       
       if (data.results?.length > 0) {
-        setShowPopup(`Successfully uploaded ${data.results.length} meme(s)! 🎉`);
+        setShowPopup(`Successfully uploaded ${data.results.length} ${activeTab === 'memes' ? 'meme' : 'photo'}(s)! 🎉`);
         setSelectedFiles([]);
-        await fetchMemes(); // Refresh the meme list
+        
+        // Refresh the appropriate list
+        if (activeTab === 'memes') {
+          await fetchMemes();
+        } else {
+          await fetchHallPhotos();
+        }
+        
         setTimeout(() => {
           setShowPopup('');
         }, 3000);
@@ -113,7 +142,8 @@ export default function AdminPage() {
 
   const handleDelete = async (publicIds) => {
     try {
-      const response = await fetch('/api/deleteMeme', {
+      const endpoint = activeTab === 'memes' ? '/api/deleteMeme' : '/api/deleteHallPhoto';
+      const response = await fetch(endpoint, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -122,9 +152,16 @@ export default function AdminPage() {
       });
 
       if (response.ok) {
-        setShowPopup('Meme(s) yeeted into the void! 🗑️');
-        await fetchMemes();
-        setSelectedMemes([]);
+        setShowPopup(`${activeTab === 'memes' ? 'Meme' : 'Photo'}(s) yeeted into the void! 🗑️`);
+        
+        // Refresh the appropriate list
+        if (activeTab === 'memes') {
+          await fetchMemes();
+        } else {
+          await fetchHallPhotos();
+        }
+        
+        setSelectedItems([]);
         setShowDeleteConfirm(false);
         setTimeout(() => {
           setShowPopup('');
@@ -133,12 +170,12 @@ export default function AdminPage() {
         throw new Error('Delete failed');
       }
     } catch (error) {
-      setMessage(`Error deleting meme: ${error.message}`);
+      setMessage(`Error deleting ${activeTab === 'memes' ? 'meme' : 'photo'}: ${error.message}`);
     }
   };
 
-  const toggleMemeSelection = (publicId) => {
-    setSelectedMemes(prev => {
+  const toggleItemSelection = (publicId) => {
+    setSelectedItems(prev => {
       if (prev.includes(publicId)) {
         return prev.filter(id => id !== publicId);
       } else {
@@ -146,6 +183,15 @@ export default function AdminPage() {
       }
     });
   };
+
+  // When changing tabs, clear selections
+  const changeTab = (tab) => {
+    setActiveTab(tab);
+    setSelectedItems([]);
+    setSelectedFiles([]);
+    setIsBulkDeleteMode(false);
+  };
+
   const DeleteConfirmation = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
@@ -153,7 +199,7 @@ export default function AdminPage() {
           Confirm Delete
         </h3>
         <p className="text-gray-600 dark:text-gray-300 mb-6">
-          Are you sure you want to yeet {selectedMemes.length} meme(s)? 
+          Are you sure you want to yeet {selectedItems.length} {activeTab === 'memes' ? 'meme' : 'photo'}(s)? 
           This action cannot be undone!
         </p>
         <div className="flex justify-end space-x-4">
@@ -164,7 +210,7 @@ export default function AdminPage() {
             Cancel
           </button>
           <button
-            onClick={() => handleDelete(selectedMemes)}
+            onClick={() => handleDelete(selectedItems)}
             className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
           >
             Yeet them
@@ -173,6 +219,9 @@ export default function AdminPage() {
       </div>
     </div>
   );
+
+  // Get the content for the current tab
+  const currentItems = activeTab === 'memes' ? memes : hallPhotos;
 
   return (
     <ClientOnly>
@@ -207,10 +256,38 @@ export default function AdminPage() {
           </div>
         ) : (
           <main className="max-w-6xl mx-auto p-8">
+            {/* Tab Navigation */}
+            <div className="mb-8">
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg overflow-hidden">
+                <div className="flex">
+                  <button
+                    onClick={() => changeTab('memes')}
+                    className={`flex-1 py-4 text-center font-bold text-lg transition-colors ${
+                      activeTab === 'memes'
+                        ? 'bg-amber-500 text-white'
+                        : 'text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    Meme Vault ({memes.length})
+                  </button>
+                  <button
+                    onClick={() => changeTab('hall')}
+                    className={`flex-1 py-4 text-center font-bold text-lg transition-colors ${
+                      activeTab === 'hall'
+                        ? 'bg-amber-500 text-white'
+                        : 'text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    Hall of Yeetardation ({hallPhotos.length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* Upload Section */}
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg p-8 mb-8">
               <h2 className="text-2xl font-bold text-amber-900 dark:text-amber-100 mb-6">
-                Meme Upload Zone
+                {activeTab === 'memes' ? 'Meme Upload Zone' : 'Hall of Yeetardation Upload Zone'}
               </h2>
               
               <div className="space-y-6">
@@ -221,13 +298,13 @@ export default function AdminPage() {
                     multiple
                     accept="image/*"
                     className="hidden"
-                    id="meme-upload"
+                    id="file-upload"
                   />
                   <label
-                    htmlFor="meme-upload"
+                    htmlFor="file-upload"
                     className="cursor-pointer bg-amber-500 text-white px-8 py-4 rounded-lg hover:bg-amber-600 transition-all duration-300 transform hover:scale-105 inline-block font-bold text-lg shadow-md mb-4"
                   >
-                    Select Memes
+                    Select {activeTab === 'memes' ? 'Memes' : 'Photos'}
                   </label>
 
                   {selectedFiles.length > 0 && (
@@ -240,7 +317,7 @@ export default function AdminPage() {
                           uploading ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                       >
-                        {uploading ? 'Yeeting in progress...' : `Yeet ${selectedFiles.length} Meme${selectedFiles.length > 1 ? 's' : ''}`}
+                        {uploading ? 'Yeeting in progress...' : `Yeet ${selectedFiles.length} ${activeTab === 'memes' ? 'Meme' : 'Photo'}${selectedFiles.length > 1 ? 's' : ''}`}
                       </button>
                     </div>
                   )}
@@ -262,18 +339,18 @@ export default function AdminPage() {
               </div>
             </div>
 
-            {/* Meme Management Section */}
+            {/* Item Management Section */}
             <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-lg p-8">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-amber-900 dark:text-amber-100">
-                  Manage Memes
+                  Manage {activeTab === 'memes' ? 'Memes' : 'Hall Photos'}
                 </h2>
                 <div className="flex gap-4">
-                  {memes.length > 0 && (
+                  {currentItems.length > 0 && (
                     <button
                       onClick={() => {
                         setIsBulkDeleteMode(!isBulkDeleteMode);
-                        setSelectedMemes([]);
+                        setSelectedItems([]);
                       }}
                       className={`px-4 py-2 rounded-lg transition-colors ${
                         isBulkDeleteMode 
@@ -284,57 +361,63 @@ export default function AdminPage() {
                       {isBulkDeleteMode ? 'Cancel Selection' : 'Select Multiple'}
                     </button>
                   )}
-                  {selectedMemes.length > 0 && (
+                  {selectedItems.length > 0 && (
                     <button
                       onClick={() => setShowDeleteConfirm(true)}
                       className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
                     >
-                      Delete Selected ({selectedMemes.length})
+                      Delete Selected ({selectedItems.length})
                     </button>
                   )}
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {memes.map((meme, index) => (
-                  <div 
-                    key={index} 
-                    className={`relative group cursor-pointer ${
-                      selectedMemes.includes(meme.public_id) ? 'ring-4 ring-amber-500' : ''
-                    }`}
-                    onClick={() => isBulkDeleteMode && toggleMemeSelection(meme.public_id)}
-                  >
-                    <div className="aspect-square">
-                      <img
-                        src={meme.url}
-                        alt={meme.filename}
-                        className={`w-full h-full object-cover rounded-lg transition-all duration-200 ${
-                          selectedMemes.includes(meme.public_id) ? 'brightness-75' : 'group-hover:brightness-90'
-                        }`}
-                      />
-                      {isBulkDeleteMode && (
-                        <div className="absolute top-2 left-2 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center bg-amber-500">
-                          {selectedMemes.includes(meme.public_id) && (
-                            <span className="text-white text-lg">✓</span>
-                          )}
-                        </div>
-                      )}
-                      {!isBulkDeleteMode && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete([meme.public_id]);
-                          }}
-                          className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
-                          title="Delete meme"
-                        >
-                          🗑️
-                        </button>
-                      )}
+              {currentItems.length === 0 ? (
+                <p className="text-center text-amber-800 dark:text-amber-200 py-8">
+                  No {activeTab === 'memes' ? 'memes' : 'photos'} found. Upload some!
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {currentItems.map((item, index) => (
+                    <div 
+                      key={index} 
+                      className={`relative group cursor-pointer ${
+                        selectedItems.includes(item.public_id) ? 'ring-4 ring-amber-500' : ''
+                      }`}
+                      onClick={() => isBulkDeleteMode && toggleItemSelection(item.public_id)}
+                    >
+                      <div className="aspect-square">
+                        <img
+                          src={item.url}
+                          alt={item.filename}
+                          className={`w-full h-full object-cover rounded-lg transition-all duration-200 ${
+                            selectedItems.includes(item.public_id) ? 'brightness-75' : 'group-hover:brightness-90'
+                          }`}
+                        />
+                        {isBulkDeleteMode && (
+                          <div className="absolute top-2 left-2 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center bg-amber-500">
+                            {selectedItems.includes(item.public_id) && (
+                              <span className="text-white text-lg">✓</span>
+                            )}
+                          </div>
+                        )}
+                        {!isBulkDeleteMode && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete([item.public_id]);
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                            title="Delete item"
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </main>
         )}
