@@ -10,12 +10,19 @@ export default async function handler(req, res) {
       .execute();
 
     // Map the resources to a simpler format
-    const photos = result.resources.map(resource => ({
-      filename: resource.filename,
-      url: resource.secure_url,
-      uploadDate: resource.created_at,
-      public_id: resource.public_id
-    }));
+    const photos = result.resources.map(resource => {
+      const isVideo = resource.resource_type === 'video';
+      
+      return {
+        filename: resource.filename,
+        url: resource.secure_url,
+        uploadDate: resource.created_at,
+        public_id: resource.public_id,
+        fileType: isVideo ? 'video' : 'image',
+        thumbnail: isVideo ? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/video/upload/c_scale,w_480/du_1.0/${resource.public_id}.jpg` : null,
+        duration: resource.duration || null
+      };
+    });
 
     // Return the photos array
     return res.status(200).json(photos);

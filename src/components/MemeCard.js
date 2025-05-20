@@ -1,16 +1,29 @@
 import React from 'react';
+import { VideoPlayer } from './VideoPlayer';
 
 export function MemeCard({ meme, onView, onDownload }) {
+  const isVideo = meme.fileType === 'video';
+
   return (
     <div className="meme-card group">
       <div className="relative aspect-square overflow-hidden">
-        <img 
-          src={meme.url}
-          alt={meme.filename || "Meme"}
-          className="meme-image"
-          onClick={() => onView(meme)}
-          loading="lazy"
-        />
+        {isVideo ? (
+          <div className="w-full h-full cursor-pointer" onClick={() => onView(meme)}>
+            <VideoPlayer 
+              src={meme.url} 
+              thumbnail={meme.thumbnail || meme.url} 
+              autoPlay={false}
+            />
+          </div>
+        ) : (
+          <img 
+            src={meme.url}
+            alt={meme.filename || "Meme"}
+            className="meme-image"
+            onClick={() => onView(meme)}
+            loading="lazy"
+          />
+        )}
         
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-honey-900/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -37,16 +50,28 @@ export function MemeCard({ meme, onView, onDownload }) {
 }
 
 export function HallCard({ photo, onView }) {
+  const isVideo = photo.fileType === 'video';
+
   return (
     <div className="meme-card group">
       <div className="relative aspect-square overflow-hidden">
-        <img 
-          src={photo.url}
-          alt={photo.filename || "Tattoo photo"}
-          className="meme-image"
-          onClick={() => onView(photo)}
-          loading="lazy"
-        />
+        {isVideo ? (
+          <div className="w-full h-full cursor-pointer" onClick={() => onView(photo)}>
+            <VideoPlayer 
+              src={photo.url} 
+              thumbnail={photo.thumbnail || photo.url} 
+              autoPlay={false}
+            />
+          </div>
+        ) : (
+          <img 
+            src={photo.url}
+            alt={photo.filename || "Tattoo photo"}
+            className="meme-image"
+            onClick={() => onView(photo)}
+            loading="lazy"
+          />
+        )}
         
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-honey-900/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">

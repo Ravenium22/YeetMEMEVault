@@ -37,10 +37,6 @@ export default function Home() {
     }
   }, [sortOrder]);
 
-  const fetchDownloadCounts = async () => {
-    // Removed as no longer needed
-  };
-
   const fetchMemes = async () => {
     try {
       setLoading(true);
@@ -56,17 +52,24 @@ export default function Home() {
     }
   };
 
-  const handleDownload = async (meme) => {
+  const handleDownload = async (media) => {
     try {
-      // Fetch and download the image
-      const response = await fetch(meme.url);
+      // Fetch and download the media
+      const response = await fetch(media.url);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       
       const link = document.createElement('a');
       link.style.display = 'none';
       link.href = url;
-      link.download = meme.filename || 'meme.jpg';
+      
+      // Set appropriate extension based on file type
+      const isVideo = media.fileType === 'video';
+      const extension = isVideo ? 
+        (media.url.includes('.mp4') ? '.mp4' : '.mp4') : // Default to mp4
+        (media.url.includes('.gif') ? '.gif' : '.jpg');
+        
+      link.download = (media.filename || 'media') + (media.filename?.includes(extension) ? '' : extension);
       
       document.body.appendChild(link);
       link.click();
@@ -90,12 +93,35 @@ export default function Home() {
     meme.filename?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Count videos for display
+  const videoCount = memes.filter(meme => meme.fileType === 'video').length;
+  const imageCount = memes.length - videoCount;
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       <HeroSection />
       
       <main className="flex-grow container mx-auto px-4 py-8">
+        {/* Stats */}
+        <div className="mb-6 flex flex-wrap gap-4 justify-center">
+          <div className="bg-white/80 dark:bg-honey-800/80 backdrop-blur-sm px-4 py-2 rounded-lg">
+            <span className="text-honey-900 dark:text-honey-100 font-medium">
+              📚 Vault Collection: {memes.length} items
+            </span>
+          </div>
+          <div className="bg-white/80 dark:bg-honey-800/80 backdrop-blur-sm px-4 py-2 rounded-lg">
+            <span className="text-honey-900 dark:text-honey-100 font-medium">
+              🖼️ Images: {imageCount}
+            </span>
+          </div>
+          <div className="bg-white/80 dark:bg-honey-800/80 backdrop-blur-sm px-4 py-2 rounded-lg">
+            <span className="text-honey-900 dark:text-honey-100 font-medium">
+              🎬 Videos: {videoCount}
+            </span>
+          </div>
+        </div>
+        
         {/* Controls Section */}
         <div className="mb-8 flex flex-wrap gap-4 justify-between items-center">
           {/* Search Bar */}

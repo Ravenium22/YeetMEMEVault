@@ -2,9 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
-import { FilePreview } from '../components/FilePreview';
 import ClientOnly from '../components/ClientOnly';
 import { useTheme } from 'next-themes';
+import { VideoPlayer } from '../components/VideoPlayer';
 
 export default function AdminPage() {
   const [password, setPassword] = useState('');
@@ -65,9 +65,11 @@ export default function AdminPage() {
     
     // Validate files
     const validFiles = files.filter(file => {
-      const isValid = file.type.startsWith('image/');
-      const isValidSize = file.size <= 50 * 1024 * 1024; // 50MB limit
-      return isValid && isValidSize;
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      const isValidType = isImage || isVideo;
+      const isValidSize = file.size <= 100 * 1024 * 1024; // 100MB limit
+      return isValidType && isValidSize;
     });
 
     if (validFiles.length !== files.length) {
@@ -192,6 +194,62 @@ export default function AdminPage() {
     setIsBulkDeleteMode(false);
   };
 
+  // Get the content for the current tab
+  const currentItems = activeTab === 'memes' ? memes : hallPhotos;
+
+  // File preview component with video support
+  const FilePreview = ({ files, onRemove }) => {
+    return (
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold text-amber-900 dark:text-amber-100 mb-2">
+          Selected Files ({files.length})
+        </h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {files.map((file, index) => {
+            const isVideo = file.type.startsWith('video/');
+            
+            return (
+              <div key={index} className="relative group">
+                <div className="aspect-square bg-white/50 dark:bg-gray-800/50 rounded-lg p-2">
+                  {isVideo ? (
+                    <div className="relative w-full h-full">
+                      <video
+                        src={URL.createObjectURL(file)}
+                        className="w-full h-full object-contain rounded-lg"
+                        muted
+                        autoPlay={false}
+                        controls
+                      />
+                      <div className="absolute top-1 right-1 bg-amber-500/80 text-white rounded-full px-2 py-1 text-xs font-medium">
+                        VIDEO
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={file.name}
+                      className="w-full h-full object-contain rounded-lg"
+                    />
+                  )}
+                  <button
+                    onClick={() => onRemove(index)}
+                    className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                  <div className="absolute bottom-1 left-1 right-1 text-xs text-gray-600 dark:text-gray-300 truncate px-2 py-1 bg-white/70 dark:bg-black/70 rounded">
+                    {file.name}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
   const DeleteConfirmation = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
@@ -219,9 +277,6 @@ export default function AdminPage() {
       </div>
     </div>
   );
-
-  // Get the content for the current tab
-  const currentItems = activeTab === 'memes' ? memes : hallPhotos;
 
   return (
     <ClientOnly>
@@ -296,7 +351,7 @@ export default function AdminPage() {
                     type="file"
                     onChange={handleFileSelect}
                     multiple
-                    accept="image/*"
+                    accept="image/*,video/mp4,video/webm,video/quicktime"
                     className="hidden"
                     id="file-upload"
                   />
@@ -304,7 +359,7 @@ export default function AdminPage() {
                     htmlFor="file-upload"
                     className="cursor-pointer bg-amber-500 text-white px-8 py-4 rounded-lg hover:bg-amber-600 transition-all duration-300 transform hover:scale-105 inline-block font-bold text-lg shadow-md mb-4"
                   >
-                    Select {activeTab === 'memes' ? 'Memes' : 'Photos'}
+                    Select Media
                   </label>
 
                   {selectedFiles.length > 0 && (
@@ -323,7 +378,7 @@ export default function AdminPage() {
                   )}
                   
                   <p className="text-amber-800 dark:text-amber-200 mt-4">
-                    Supported formats: JPG, PNG, GIF, WebP
+                    Supported formats: JPG, PNG, GIF, WebP, MP4, WebM, MOV
                   </p>
                 </div>
 
@@ -378,44 +433,58 @@ export default function AdminPage() {
                 </p>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                  {currentItems.map((item, index) => (
-                    <div 
-                      key={index} 
-                      className={`relative group cursor-pointer ${
-                        selectedItems.includes(item.public_id) ? 'ring-4 ring-amber-500' : ''
-                      }`}
-                      onClick={() => isBulkDeleteMode && toggleItemSelection(item.public_id)}
-                    >
-                      <div className="aspect-square">
-                        <img
-                          src={item.url}
-                          alt={item.filename}
-                          className={`w-full h-full object-cover rounded-lg transition-all duration-200 ${
-                            selectedItems.includes(item.public_id) ? 'brightness-75' : 'group-hover:brightness-90'
-                          }`}
-                        />
-                        {isBulkDeleteMode && (
-                          <div className="absolute top-2 left-2 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center bg-amber-500">
-                            {selectedItems.includes(item.public_id) && (
-                              <span className="text-white text-lg">✓</span>
-                            )}
-                          </div>
-                        )}
-                        {!isBulkDeleteMode && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete([item.public_id]);
-                            }}
-                            className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
-                            title="Delete item"
-                          >
-                            🗑️
-                          </button>
-                        )}
+                  {currentItems.map((item, index) => {
+                    const isVideo = item.fileType === 'video';
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className={`relative group cursor-pointer ${
+                          selectedItems.includes(item.public_id) ? 'ring-4 ring-amber-500' : ''
+                        }`}
+                        onClick={() => isBulkDeleteMode && toggleItemSelection(item.public_id)}
+                      >
+                        <div className="aspect-square">
+                          {isVideo ? (
+                            <div className="w-full h-full">
+                              <VideoPlayer 
+                                src={item.url} 
+                                thumbnail={item.thumbnail || item.url} 
+                                autoPlay={false}
+                              />
+                            </div>
+                          ) : (
+                            <img
+                              src={item.url}
+                              alt={item.filename}
+                              className={`w-full h-full object-cover rounded-lg transition-all duration-200 ${
+                                selectedItems.includes(item.public_id) ? 'brightness-75' : 'group-hover:brightness-90'
+                              }`}
+                            />
+                          )}
+                          {isBulkDeleteMode && (
+                            <div className="absolute top-2 left-2 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center bg-amber-500">
+                              {selectedItems.includes(item.public_id) && (
+                                <span className="text-white text-lg">✓</span>
+                              )}
+                            </div>
+                          )}
+                          {!isBulkDeleteMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete([item.public_id]);
+                              }}
+                              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                              title="Delete item"
+                            >
+                              🗑️
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

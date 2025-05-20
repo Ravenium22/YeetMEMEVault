@@ -5,16 +5,39 @@ import fs from 'fs';
 export const config = {
   api: {
     bodyParser: false,
-    maxDuration: 60, // Increase timeout to 60 seconds
+    maxDuration: 120, // Increased timeout for video uploads
   },
 };
 
 const saveToCloudinary = async (file) => {
   try {
-    const result = await cloudinary.uploader.upload(file.filepath, {
+    // Check if file is a video
+    const isVideo = file.mimetype && file.mimetype.startsWith('video/');
+    
+    // Configure Cloudinary options based on file type
+    const options = {
       folder: 'meme-vault',
-      resource_type: 'auto',
-    });
+      resource_type: isVideo ? 'video' : 'auto',
+    };
+    
+    // Add video-specific options
+    if (isVideo) {
+      options.eager = [
+        // Create a thumbnail from the video
+        { format: 'jpg', transformation: [
+          { width: 480, crop: 'scale' },
+          { duration: "1.0" }  // Removed invalid flag
+        ]},
+        // Create a lower resolution version for faster loading
+        { format: 'mp4', transformation: [
+          { width: 640, crop: 'scale' },
+          { quality: 'auto:good' }
+        ]}
+      ];
+      options.eager_async = true;
+    }
+
+    const result = await cloudinary.uploader.upload(file.filepath, options);
 
     // Clean up the temp file
     fs.unlink(file.filepath, (err) => {
@@ -25,6 +48,9 @@ const saveToCloudinary = async (file) => {
       url: result.secure_url,
       public_id: result.public_id,
       filename: file.originalFilename,
+      fileType: isVideo ? 'video' : 'image',
+      thumbnail: isVideo && result.eager && result.eager[0] ? result.eager[0].secure_url : null,
+      duration: isVideo ? result.duration : null,
       success: true
     };
   } catch (error) {
@@ -41,11 +67,16 @@ export default async function handler(req, res) {
   try {
     const form = formidable({
       maxFiles: 100,
-      maxFileSize: 50 * 1024 * 1024, // 50MB per file
+      maxFileSize: 100 * 1024 * 1024, // Increased to 100MB for videos
       allowEmptyFiles: false,
       filter: function ({ name, originalFilename, mimetype }) {
-        // Accept only images
-        return mimetype && mimetype.includes("image");
+        // Accept images and videos
+        return mimetype && (
+          mimetype.includes("image") || 
+          mimetype.includes("video/mp4") || 
+          mimetype.includes("video/quicktime") ||
+          mimetype.includes("video/webm")
+        );
       },
     });
 

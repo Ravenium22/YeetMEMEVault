@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
+import { VideoPlayer } from './VideoPlayer';
 
 export function ImagePreview({ image, onClose, onDownload, hideDownloadButton = false }) {
   const [isZoomed, setIsZoomed] = useState(false);
+  const isVideo = image.fileType === 'video';
   
   const toggleZoom = (e) => {
-    e.stopPropagation();
-    setIsZoomed(!isZoomed);
+    if (!isVideo) {
+      e.stopPropagation();
+      setIsZoomed(!isZoomed);
+    }
   };
 
   return (
@@ -20,23 +24,26 @@ export function ImagePreview({ image, onClose, onDownload, hideDownloadButton = 
         {/* Header */}
         <div className="p-4 flex justify-between items-center border-b border-honey-200 dark:border-honey-700 bg-honey-50 dark:bg-honey-800">
           <h3 className="text-lg font-bold text-honey-800 dark:text-honey-200">
-            {image.filename || 'Image Preview'}
+            {image.filename || 'Media Preview'}
+            {isVideo && <span className="ml-2 text-honey-500 text-sm">(Video)</span>}
           </h3>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={toggleZoom}
-              className="text-honey-500 hover:text-honey-700 dark:hover:text-honey-300 transition-colors"
-              aria-label={isZoomed ? "Zoom out" : "Zoom in"}
-              title={isZoomed ? "Zoom out" : "Zoom in"}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                {isZoomed ? (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
-                ) : (
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
-                )}
-              </svg>
-            </button>
+            {!isVideo && (
+              <button 
+                onClick={toggleZoom}
+                className="text-honey-500 hover:text-honey-700 dark:hover:text-honey-300 transition-colors"
+                aria-label={isZoomed ? "Zoom out" : "Zoom in"}
+                title={isZoomed ? "Zoom out" : "Zoom in"}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {isZoomed ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                  )}
+                </svg>
+              </button>
+            )}
             <button 
               onClick={onClose}
               className="text-honey-500 hover:text-honey-700 dark:hover:text-honey-300 transition-colors"
@@ -49,20 +56,31 @@ export function ImagePreview({ image, onClose, onDownload, hideDownloadButton = 
           </div>
         </div>
         
-        {/* Image Container */}
+        {/* Media Container */}
         <div 
-          className={`p-4 flex items-center justify-center bg-honey-100/50 dark:bg-honey-800/50 backdrop-blur-sm ${isZoomed ? 'overflow-auto max-h-[70vh] cursor-zoom-out' : 'cursor-zoom-in'}`}
-          onClick={toggleZoom}
+          className={`p-4 flex items-center justify-center bg-honey-100/50 dark:bg-honey-800/50 backdrop-blur-sm
+            ${isVideo ? '' : (isZoomed ? 'overflow-auto max-h-[70vh] cursor-zoom-out' : 'cursor-zoom-in')}`}
+          onClick={!isVideo ? toggleZoom : undefined}
         >
-          <img 
-            src={image.url}
-            alt={image.filename || "Preview image"}
-            className={`object-contain rounded-lg shadow-lg transition-all duration-300 ${
-              isZoomed 
-                ? 'max-w-none max-h-none transform scale-150' 
-                : 'max-h-[70vh] max-w-full'
-            }`}
-          />
+          {isVideo ? (
+            <div className="w-full max-h-[70vh]">
+              <VideoPlayer 
+                src={image.url} 
+                thumbnail={image.thumbnail || image.url} 
+                autoPlay={true}
+              />
+            </div>
+          ) : (
+            <img 
+              src={image.url}
+              alt={image.filename || "Preview image"}
+              className={`object-contain rounded-lg shadow-lg transition-all duration-300 ${
+                isZoomed 
+                  ? 'max-w-none max-h-none transform scale-150' 
+                  : 'max-h-[70vh] max-w-full'
+              }`}
+            />
+          )}
         </div>
         
         {/* Footer */}
@@ -70,7 +88,7 @@ export function ImagePreview({ image, onClose, onDownload, hideDownloadButton = 
           {!hideDownloadButton && (
             <>
               <div className="text-sm text-honey-700 dark:text-honey-300">
-                Click image to zoom
+                {isVideo ? "Video controls available" : "Click image to zoom"}
               </div>
               <button 
                 onClick={(e) => {
@@ -90,7 +108,8 @@ export function ImagePreview({ image, onClose, onDownload, hideDownloadButton = 
           )}
           {hideDownloadButton && (
             <div className="text-sm text-honey-700 dark:text-honey-300 w-full text-center">
-              Part of the Hall of Yeetardation collection • Click image to zoom
+              Part of the Hall of Yeetardation collection 
+              {!isVideo && " • Click image to zoom"}
             </div>
           )}
         </div>
